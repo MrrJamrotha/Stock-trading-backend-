@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Service\Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -27,22 +29,37 @@ class AuthController extends Controller
 
             $credentials = $request->only('email', 'password');
             if (! $token = auth()->attempt($credentials)) {
-                return response()->json(['error' => 'Invalid credentials'], 401);
+                return response()->json(['status' => 'failed', 'message' => 'Unauthorized'], 401);
             }
-            $user = auth()->user();
-            $token = auth()->claims(['role' => $user->role])->fromUser($user);
-
             return $this->respondWithToken($token);
         } catch (\Exception $exception) {
-            return $this->service->errorMessage();
+            return $this->service->errorMessage($exception);
         }
     }
 
     public function register(Request $request)
     {
         try {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|confirmed|min:6',
+                'password_confirmation' => 'required',
+            ]);
+            if ($validator->fails()) {
+                return $this->service->validate($validator);
+            }
+            User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Register successfully',
+            ]);
         } catch (\Exception $exception) {
-            return $this->service->errorMessage();
+            return $this->service->errorMessage($exception);
         }
     }
 
@@ -64,6 +81,26 @@ class AuthController extends Controller
 
     public function me()
     {
-        return response()->json(auth()->user());
+        try {
+            if (! auth()->check()) {
+                return $this->service->unauthorizedMessage();
+            }
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Get profile information successfully',
+                'record' => auth()->user(),
+            ]);
+        } catch (\Exception $exception) {
+            return $this->service->errorMessage($exception);
+        }
+    }
+
+    public function refresh()
+    {
+        try {
+            return $this->respondWithToken(auth()->refresh());
+        } catch (\Exception $exception) {
+            return $this->service->errorMessage($exception);
+        }
     }
 }

@@ -21,6 +21,7 @@ return new class extends Migration
             $table->enum('role',['admin','user','developer'])->default('user');
             $table->string('avatar')->nullable();
             $table->string('avatar_hash')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });
