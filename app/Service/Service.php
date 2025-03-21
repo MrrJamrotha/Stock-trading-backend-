@@ -23,7 +23,8 @@ class Service
         ], 404);
     }
 
-    public function unauthorizedMessage(){
+    public function unauthorizedMessage()
+    {
         return response()->json([
             'status' => 'failed',
             'message' => 'Unauthorized',
@@ -47,17 +48,8 @@ class Service
 
     public function sendMessageTelelegram($message)
     {
-        $update = json_decode(file_get_contents("php://input"), true);
-        if (isset($update["message"])) {
-            $chat_id = $update["message"]["chat"]["id"];
-            $text = $update["message"]["text"];
-
-            // Process message
-            $reply = "You said: " . $text;
-
-            // Send response
-            $this->sendMessage($chat_id, $reply, env('TELEGRAM_BOT_TOKEN'));
-        }
+        $chat_id = env('TELEGRAM_BOT_CHAT_ID'); 
+        $this->sendMessage($chat_id, $message, env('TELEGRAM_BOT_TOKEN'));
     }
 
     // Function to send a message
